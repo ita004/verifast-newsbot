@@ -18,13 +18,23 @@ app.use('/api/chat', chatRoutes);
 const frontendPath = path.join(__dirname, 'client', 'dist');
 app.use(express.static(frontendPath));
 
-// Simple route for health check
+// Health check routes - both for custom checks and Render's default root check
 app.get('/health', (req, res) => {
   res.json({ status: 'ok' });
 });
 
+// Root route for Render's health check
+app.get('/', (req, res) => {
+  // If it's an API request, return OK status
+  if (req.headers.accept && req.headers.accept.includes('application/json')) {
+    return res.json({ status: 'ok' });
+  }
+  // Otherwise serve the frontend
+  res.sendFile(path.join(frontendPath, 'index.html'));
+});
+
 // Handle all other routes by serving the React app
-app.use((req, res) => {
+app.get('*', (req, res) => {
   res.sendFile(path.join(frontendPath, 'index.html'));
 });
 
