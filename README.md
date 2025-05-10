@@ -1,36 +1,36 @@
-# NewsBot Backend - RAG-Powered News Chatbot
+# Verifast NewsBot - RAG-Powered News Chatbot
 
 ![Version](https://img.shields.io/badge/version-1.0.0-blue.svg)
-![Node](https://img.shields.io/badge/node-v14+-green.svg)
+![Node](https://img.shields.io/badge/node-v22+-green.svg)
 ![License](https://img.shields.io/badge/license-MIT-orange.svg)
 
-This repository contains the backend implementation of a RAG-powered chatbot for news websites. The system ingests news articles, embeds them using Jina Embeddings, stores them in a Qdrant vector database, and uses Google's Gemini API to generate responses based on retrieved relevant articles.
+This repository contains the backend implementation of a RAG-powered chatbot for news websites. The system uses Jina Embeddings to convert user queries into vector representations, retrieves relevant news articles from a Qdrant vector database, and uses Google's Gemini API to generate informative responses based on the retrieved content.
 
 ## 🚀 Features
 
-- **News Ingestion**: Fetches news articles from BBC RSS feeds with robust error handling and fallback mechanisms
 - **Vector Database**: Stores article embeddings in Qdrant for semantic search
 - **Session Management**: Maintains chat history using Redis with configurable TTL
 - **RAG Pipeline**: Retrieves relevant articles for user queries and generates contextual responses
-- **REST API**: Provides endpoints for chat interactions, session management, and vector database operations
+- **REST API**: Provides endpoints for chat interactions and session management
 - **Enhanced Prompting**: Sophisticated prompt engineering for detailed and informative responses
 
 ## 🛠️ Tech Stack
 
-- **Runtime**: Node.js
+- **Runtime**: Node.js v22
 - **Framework**: Express.js
-- **Vector Database**: Qdrant
+- **Vector Database**: Qdrant Cloud
 - **Embeddings**: Jina Embeddings
 - **In-Memory Database**: Redis
 - **LLM**: Google Gemini API
-- **Web Scraping**: Axios, Cheerio, xml2js
+- **HTTP Client**: Axios
 
 ## 📋 Prerequisites
 
-- Node.js (v14+)
-- Redis server
-- Qdrant server
+- Node.js (v22+)
+- Redis server (local or cloud)
+- Qdrant Cloud account
 - Google Gemini API key
+- Jina AI API key
 
 ## 🔧 Installation
 
@@ -49,94 +49,87 @@ This repository contains the backend implementation of a RAG-powered chatbot for
    ```
    PORT=3001
    REDIS_URL=redis://localhost:6379
-   QDRANT_HOST=http://localhost:6333
+   QDRANT_HOST=https://your-qdrant-instance.cloud.qdrant.io:6333
+   QDRANT_API_KEY=your_qdrant_api_key
    GEMINI_API_KEY=your_gemini_api_key
+   JINA_API_KEY=your_jina_api_key
    ```
 
-4. Start Redis and Qdrant servers:
+4. Start Redis server (if using locally):
    ```bash
    # Start Redis (if not already running)
    redis-server
-
-   # Start Qdrant (if not already running)
-   docker run -p 6333:6333 qdrant/qdrant
    ```
 
 ## 🚀 Usage
 
 1. Start the server:
    ```bash
-   npm start
+   node server.js
    ```
 
-2. Initialize the vector database with news articles:
-   ```bash
-   node scripts/resetVectorDb.js
-   node scripts/embedNews.js
-   ```
+2. The server will be available at http://localhost:3001
 
-3. View the contents of the vector database:
-   ```bash
-   node scripts/viewVectorDb.js
-   ```
+3. Use the frontend application to interact with the chatbot (see the frontend repository)
 
 ## 📚 API Endpoints
 
 ### Chat Endpoints
 
-- **POST /api/chat/message**
+- **POST /api/chat**
   - Send a message to the chatbot
-  - Request body: `{ sessionId: string, message: string }`
-  - Response: `{ response: string }`
+  - Request body: `{ message: string, session_id?: string }`
+  - Response: `{ reply: string, session_id: string }`
 
-- **GET /api/chat/history/:sessionId**
+- **GET /api/chat/session/:id**
   - Get chat history for a specific session
-  - Response: `Array<{ role: string, content: string }>`
+  - Response: `{ history: Array<{ user: string, bot: string }> }`
 
 - **POST /api/chat/reset**
   - Reset a chat session
-  - Request body: `{ sessionId: string }`
-  - Response: `{ success: boolean, message: string }`
+  - Request body: `{ session_id: string }`
+  - Response: `{ message: string }`
 
 ## 🏗️ Project Structure
 
 ```
 backend/
+├── client/            # Frontend application (built with React)
+│   ├── dist/          # Built frontend files
+│   └── src/           # Frontend source code
 ├── routes/            # API route definitions
 │   └── chat.js        # Chat-related endpoints
-├── scripts/           # Utility scripts
-│   ├── embedNews.js   # Script to fetch and embed news articles
-│   ├── resetVectorDb.js # Script to reset the vector database
-│   └── viewVectorDb.js # Script to view vector database contents
 ├── services/          # Core business logic
-│   ├── chatService.js # Chat processing logic
-│   ├── embeddingService.js # Embedding generation
-│   ├── newsIngestion.js # News fetching and processing
-│   └── vectorDbService.js # Vector database operations
+│   ├── embeddingService.js # Embedding generation with Jina AI
+│   ├── geminiService.js    # Gemini API integration
+│   ├── newsIngestion.js    # News processing utilities
+│   └── vectorDbService.js  # Qdrant operations
 ├── utils/             # Utility functions
-│   └── sessionManager.js # Redis session management
+│   └── sessionManager.js   # Redis session management
 ├── app.js             # Express application setup
 ├── server.js          # Server entry point
+├── render.yaml        # Render deployment configuration
+├── render-build.sh    # Build script for Render
+├── start.sh           # Start script for Render
 └── package.json       # Project dependencies
 ```
 
 ## 💡 Design Decisions
 
-### News Ingestion Strategy
+### RAG Pipeline Implementation
 
-The system fetches news from BBC RSS feeds, which provides reliable access to current news articles without authentication requirements:
+The system implements a Retrieval-Augmented Generation (RAG) pipeline:
 
-1. It fetches articles from multiple BBC RSS feeds (world, business, technology, science, etc.)
-2. It processes and validates the articles to ensure they have sufficient content
-3. If fetching fails for any reason, it falls back to a set of sample news articles
+1. User queries are converted to vector embeddings using Jina AI
+2. These embeddings are used to search for relevant news articles in Qdrant
+3. Retrieved articles are formatted and sent to Gemini API along with the user query
+4. Gemini generates a comprehensive response based on the retrieved context
 
-We chose BBC RSS feeds over Reuters sitemap scraping because:
-- No authentication required (Reuters returned 401 errors)
-- More reliable access without being blocked by Cloudflare
-- Simpler parsing with structured RSS feeds vs. HTML scraping
-- Consistent content format with proper article summaries
-
-This approach ensures the system remains functional for demonstration purposes even when external APIs are unavailable.
+This approach provides several advantages:
+- More accurate and factual responses based on real news content
+- Reduced hallucination compared to using LLMs without retrieval
+- Ability to answer questions about current events with specific details
+- Contextual awareness for follow-up questions
 
 ### Caching & Performance
 
@@ -160,8 +153,8 @@ For production, you might consider:
 
 ## 🔍 Potential Improvements
 
-1. **Authentication**: Add user authentication for personalized experiences
-2. **Scheduled Ingestion**: Implement periodic news fetching using cron jobs
+1. **News Ingestion**: Implement automated news fetching from RSS feeds or news APIs
+2. **Authentication**: Add user authentication for personalized experiences
 3. **Caching Layer**: Add response caching for common queries
 4. **Analytics**: Track user interactions and query patterns
 5. **Streaming Responses**: Implement SSE or WebSockets for streaming bot responses
@@ -178,21 +171,34 @@ For production, you might consider:
 1. Create a new Web Service on Render
 2. Connect your GitHub repository
 3. Configure the service with these settings:
-   - **Build Command**: `npm install`
-   - **Start Command**: `npm start`
+   - **Build Command**: `./render-build.sh`
+   - **Start Command**: `./start.sh`
    - **Environment Variables**: Add all variables from your `.env` file
 
 ### Required External Services
 
-1. **Redis**: Set up a Redis instance (Render offers Redis as an add-on)
+1. **Redis**: Set up a Redis instance (Upstash Redis recommended)
    - Add the Redis URL to your environment variables
+   - Enable TLS for production deployments
 
-2. **Qdrant**: Deploy a Qdrant instance
-   - Option 1: Use Qdrant Cloud (https://cloud.qdrant.io/)
-   - Option 2: Deploy Qdrant on Render using Docker
-   - Add the Qdrant URL to your environment variables
+2. **Qdrant**: Use Qdrant Cloud (https://cloud.qdrant.io/)
+   - Create a collection named "news-articles"
+   - Add the Qdrant URL and API key to your environment variables
 
-3. **Google Gemini API**: Ensure your API key is added to environment variables
+3. **API Keys**: Add the following API keys to your environment variables:
+   - `GEMINI_API_KEY`: For Google Gemini API
+   - `JINA_API_KEY`: For Jina AI embeddings
+
+## 🖥️ Frontend Repository
+
+The frontend for this application is included in the `client` directory and is built with React and Tailwind CSS. It provides a clean, responsive chat interface for interacting with the NewsBot.
+
+Key frontend features:
+- Real-time chat interface
+- Session persistence across page refreshes
+- Session reset functionality
+- Mobile-responsive design
+- Clean, modern UI with Tailwind CSS
 
 ## 📄 License
 
