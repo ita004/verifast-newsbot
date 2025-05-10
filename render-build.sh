@@ -14,5 +14,6 @@ cd ..
 export NODE_ENV=production
 export RENDER=true
 
-# Start the server
-node server.js
+# Don't start the server in the build script
+# The server will be started by Render after the build completes
+echo "Build completed successfully!"
