@@ -1,0 +1,23 @@
+services:
+  - type: web
+    name: verifast-newsbot
+    env: node
+    buildCommand: npm install && cd client && npm install && npm run build && cd ..
+    startCommand: node server.js
+    envVars:
+      - key: PORT
+        value: 3001
+      - key: REDIS_URL
+        fromService:
+          type: redis
+          name: newsbot-redis
+          property: connectionString
+      - key: QDRANT_HOST
+        value: http://localhost:6333
+      - key: GEMINI_API_KEY
+        sync: false
+
+  - type: redis
+    name: newsbot-redis
+    ipAllowList: []
+    plan: free
