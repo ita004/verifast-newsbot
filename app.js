@@ -23,7 +23,7 @@ app.get('/health', (req, res) => {
   res.json({ status: 'ok' });
 });
 
-// Root route for Render's health check
+// Root route for Render's health check and serving the frontend
 app.get('/', (req, res) => {
   // If it's an API request, return OK status
   if (req.headers.accept && req.headers.accept.includes('application/json')) {
@@ -34,7 +34,11 @@ app.get('/', (req, res) => {
 });
 
 // Handle all other routes by serving the React app
-app.get('*', (req, res) => {
+app.use((req, res, next) => {
+  // Skip API routes
+  if (req.path.startsWith('/api/')) {
+    return next();
+  }
   res.sendFile(path.join(frontendPath, 'index.html'));
 });
 
