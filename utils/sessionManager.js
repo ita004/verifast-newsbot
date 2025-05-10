@@ -1,5 +1,20 @@
 const redis = require('redis');
-const client = redis.createClient({ url: process.env.REDIS_URL });
+
+// Configure Redis client based on environment
+const redisConfig = {};
+
+// Start with the basic URL configuration
+redisConfig.url = process.env.REDIS_URL;
+
+// Add TLS options for production environments (like Render)
+if (process.env.NODE_ENV === 'production' || process.env.RENDER) {
+  redisConfig.socket = {
+    tls: true,
+    rejectUnauthorized: false
+  };
+}
+
+const client = redis.createClient(redisConfig);
 
 client.connect();
 
